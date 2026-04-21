@@ -795,7 +795,6 @@ def run_checker(gate_type):
 
     stats.display_final(f"MOHA-02 {gate_type}", file_path)
     input(f"\n{C.lyellow}اضغط Enter للعودة للقائمة...{C.reset}")
-
 def main_menu():
     open_socials()
     while True:
