@@ -41,25 +41,18 @@ init(autoreset=True)
 console = Console()
 
 class Colors:
-    reset = Style.RESET_ALL
-    bold = Style.BRIGHT
-    red = Fore.RED
-    green = Fore.GREEN
-    yellow = Fore.YELLOW
-    blue = Fore.BLUE
-    magenta = Fore.MAGENTA
-    cyan = Fore.CYAN
-    white = Fore.WHITE
-    lred = Fore.LIGHTRED_EX
-    lgreen = Fore.LIGHTGREEN_EX
-    lyellow = Fore.LIGHTYELLOW_EX
-    lcyan = Fore.LIGHTCYAN_EX
-    lwhite = Fore.LIGHTWHITE_EX
+    reset = "\033[0m"
+    lgreen = "\033[92m"
+    lcyan = "\033[96m"
+    white = "\033[97m"
+    lyellow = "\033[93m"
+    lred = "\033[91m"
     
-    neon_cyan = "cyan" 
+    # ألوان خاصة لمكتبة Rich (بدون أكواد ANSI)
+    neon_cyan = "cyan"
     success_green = "green"
     fail_red = "red"
-    warning_yellow = "yellow"
+
     
     STATS_STYLE = RichStyle(color="#00ffcc")
     SUCCESS_STYLE = RichStyle(color="#00ff00")
@@ -808,8 +801,26 @@ if __name__ == "__main__":
         # التفعيل التلقائي باسمك
         status, msg = check_license("ADMIN-MOHA")
         if status:
-            main_menu()
-        else:
-            print(f"خطأ في النظام: {msg}")
-    except KeyboardInterrupt:
-        sys.exit(f"\n{C.lyellow}تم الإغلاق بواسطة موحا الشلفاوي{C.reset}")
+            def main_menu():
+    open_socials()
+    while True:
+        show_banner()
+        # حذفنا الستايلات القديمة التي تسببت في الخطأ واستخدمنا ستايلات Rich المتوافقة
+        menu_table = Table(box=box.DOUBLE_EDGE, border_style="cyan", min_width=50)
+        menu_table.add_column("MOHA-02 SYSTEM", justify="center", style="bright_cyan")
+        
+        menu_table.add_row("[1] فحص بطاقات (Gate: PayPal)")
+        menu_table.add_row("[2] فحص بطاقات (Gate: Stripe Auth)")
+        menu_table.add_row("[3] إعدادات بوت التليجرام")
+        menu_table.add_row("[4] الإعدادات المتقدمة")
+        menu_table.add_row("[5] الخروج")
+        
+        console.print(menu_table)
+        
+        choice = input(f"\n{Colors.lcyan} ╭─MOHA-SYSTEM: {Colors.lgreen}$ {Colors.reset}").strip()
+        
+        if choice == '1': run_checker("PayPal")
+        elif choice == '2': run_checker("Stripe")
+        elif choice == '3': bot_settings_menu()
+        elif choice == '4': advanced_settings_menu()
+        elif choice == '5': sys.exit()
