@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 # -*- coding: utf-8 -*-
 
 import requests
@@ -69,8 +69,13 @@ class Colors:
 C = Colors()
 
 def open_socials():
-    webbrowser.open("https://t.me/m_oha_02")
-    webbrowser.open("https://www.facebook.com/profile.php?id=100089063544267")
+    # فتح قناة التليجرام مباشرة في التطبيق
+    os.system("termux-open-url tg://resolve?domain=m_oha_02")
+    
+    # فتح حساب الفيسبوك مباشرة في التطبيق (باستخدام ID الحساب)
+    # ملاحظة: استخدمنا البروتوكول fb:// لضمان الانتقال للتطبيق
+    os.system("termux-open-url fb://profile/100089063544267")
+
 
 def show_banner():
     os.system('cls' if os.name == 'nt' else 'clear')
