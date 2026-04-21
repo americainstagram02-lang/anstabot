@@ -795,11 +795,14 @@ def run_checker(gate_type):
 
     stats.display_final(f"MOHA-02 {gate_type}", file_path)
     input(f"\n{C.lyellow}اضغط Enter للعودة للقائمة...{C.reset}")
+# --- حذف كل شيء قديم من سطر 790 للنهاية واستبداله بهذا ---
+
 def main_menu():
+    # استدعاء فتح الروابط في التطبيقات
     open_socials()
     while True:
         show_banner()
-        # استعملنا تنسيق بسيط يتوافق مع شاشة الهاتف وTermux
+        # تنسيق القائمة الاحترافي المتوافق مع Termux
         print(f" {Colors.lcyan}╔══════════════════════════════════════════╗")
         print(f" {Colors.lcyan}║ [1] {Colors.white}PayPal Checker                       {Colors.lcyan}║")
         print(f" {Colors.lcyan}║ [2] {Colors.white}Stripe Auth Checker                  {Colors.lcyan}║")
@@ -815,3 +818,12 @@ def main_menu():
         elif choice == '3': bot_settings_menu()
         elif choice == '4': advanced_settings_menu()
         elif choice == '5': sys.exit()
+
+# هذا الجزء هو المسؤول عن تشغيل الأداة (تأكد أنه في بداية السطر بدون مسافات)
+if __name__ == "__main__":
+    try:
+        main_menu()
+    except Exception as e:
+        print(f"Error: {e}")
+    except KeyboardInterrupt:
+        sys.exit(f"\n{Colors.lyellow}تم الإغلاق بواسطة موحا الشلفاوي{Colors.reset}")
