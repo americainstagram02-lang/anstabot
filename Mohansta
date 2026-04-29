@@ -236,6 +236,5 @@ def main_menu():
 
 if __name__ == "__main__":
     # فتح القناة عند التشغيل لأول مرة مثل الكود الأصلي
-    try: webbrowser.open("https://t.me/m_oha0_2b")
-    except: pass
+    
     main_menu()
