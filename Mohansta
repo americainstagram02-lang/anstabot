@@ -1,160 +1,149 @@
-# -*- coding: utf-8 -*-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Tool Name: MOHA-02 TURBO CLEANER (ANTI-BAN EDITION)
-# Developer: Moha Al-Shalfawi (@m_oha_02)
-# Version: 13.0 (Anti-Ban 2026)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-import requests, os, sys, time, re, random, string
+import requests, os, sys, time, re, random
 from cfonts import render
 from concurrent.futures import ThreadPoolExecutor
 
-# Neon Matrix Colors
-Z = '\033[1;31m' # Red
+# Colors
+R = '\033[1;31m' # Red
 G = '\033[1;32m' # Green
 Y = '\033[1;33m' # Yellow
-W = '\033[1;37m' # White
 B = '\033[1;34m' # Blue
+W = '\033[1;37m' # White
 P = '\033[1;35m' # Purple
-C = '\033[1;36m' # Cyan
-COLOR_LIST = [G, Y, B, P, C, W, G, C]
 
 accounts = [] 
 deleted_count = 0
 failed_count = 0
-loop = 0
 
 def clear():
     os.system('clear' if os.name == 'posix' else 'cls')
 
-def linex():
-    print(G + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-def get_random_ua():
-    """توليد بصمات أجهزة عشوائية لتخطي الحظر"""
-    android_vers = random.randint(9, 14)
-    chrome_vers = random.randint(100, 125)
-    build = random.randint(4000, 6000)
-    device = random.choice(["SM-G998B", "CPH2269", "V2027", "RMX3085", "M2101K6G"])
-    return f"Mozilla/5.0 (Linux; Android {android_vers}; {device}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome_vers}.0.{build}.0 Mobile Safari/537.36"
-
 def logo():
     clear()
-    print(render('MOHA-02', colors=['white', 'green'], align='center'))
-    linex()
-    print(f" {Z}({W}★{Z}){W} DEVELOPER : {G}MOHA AL-SHALFAWI (@m_oha_02)")
-    print(f" {Z}({W}★{Z}){W} SYSTEM    : {G}TURBO ANTI-BAN")
-    print(f" {Z}({W}★{Z}){W} STATUS    : {G}MAX VELOCITY 2026")
-    linex()
+    print(P + "┌" + "─"*58 + "┐")
+    print(render(' MOHA ', colors=['magenta', 'cyan'], align='center', font='block'))
+    print(P + "└" + "─"*58 + "┘")
+    print(f" {B}» {W}Developer : {G}Moha Al-Shalfawi")
+    print(f" {B}» {W}System    : {G}Infinite Turbo Cleaner")
+    print(f" {B}» {W}Order     : {G}Newest to Oldest")
+    print(f" {B}» {W}Status    : {P}Ready to Work")
+    print(P + "─"*60)
 
 def add_accounts():
     global accounts
     logo()
     try:
-        num = int(input(f" {Z}[{W}?{Z}]{W} HOW MANY ACCOUNTS: {G}"))
+        num = int(input(f"{W} [?] How many accounts to add: {G}"))
         for i in range(num):
-            print(f"\n {Y}[~] CONFIGURING ACCOUNT #{i+1}:")
-            cookie = input(f" {Z}[{W}?{Z}]{W} ENTER COOKIE: {G}").strip()
-            head = {'User-Agent': get_random_ua(), 'Cookie': cookie}
+            print(f"\n{Y} [~] Setup Account #{i+1}:")
+            cookie = input(f"{W} [?] Enter Account Cookies: {G}").strip()
+            
+            head = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Cookie': cookie}
+            print(f"{Y} [~] Extracting token & verifying...")
+            
             res = requests.get('https://business.facebook.com/business_locations', headers=head)
             token_match = re.search('(EAAG\w+)', res.text)
+            
             if token_match:
                 token = token_match.group(1)
-                accounts.append({'token': token, 'cookie': cookie})
-                print(f" {G}[✓] ACCOUNT LOADED!")
+                verify_url = f"https://graph.facebook.com/v19.0/me?access_token={token}"
+                verify_res = requests.get(verify_url, cookies={'cookie': cookie}).json()
+                
+                if 'id' in verify_res:
+                    name = verify_res.get('name', 'Unknown')
+                    accounts.append({'token': token, 'cookie': cookie})
+                    print(f"{G} [✓] Success! Account Linked: {W}{name}")
+                else:
+                    print(f"{R} [×] Token found but Cookies expired.")
             else:
-                print(f" {Z}[×] FAILED TO EXTRACT TOKEN.")
-        time.sleep(1)
-    except: pass
+                print(f"{R} [×] Failed to extract token.")
+        time.sleep(2)
+    except Exception as e:
+        print(f"{R} [!] Input Error: {e}")
 
 def delete_process(data):
-    global deleted_count, failed_count, loop
+    global deleted_count, failed_count
     post_id = data['post_id']
+    post_date = data['date']
     acc = data['acc']
-    color = random.choice(COLOR_LIST)
     
     try:
-        # نظام الحذف الموزع مع بصمة جهاز متغيرة
-        url = f"https://graph.facebook.com/v18.0/{post_id}"
-        headers = {'User-Agent': get_random_ua()}
-        res = requests.delete(
-            url, 
-            params={'access_token': acc['token']}, 
-            cookies={'cookie': acc['cookie']}, 
-            headers=headers,
-            timeout=10
-        ).json()
+        # Anti-Ban delay
+        time.sleep(random.uniform(0.3, 0.8))
         
-        if res.get('success') or res == True:
+        url = f"https://graph.facebook.com/v19.0/{post_id}"
+        res = requests.delete(url, params={'access_token': acc['token']}, 
+                             cookies={'cookie': acc['cookie']}, timeout=15).json()
+        
+        if res.get('success'):
             deleted_count += 1
+            sys.stdout.write(f"\r {W}[+] Deleted Date: {Y}{post_date} {W}| Total: {G}{deleted_count} {W}")
+            sys.stdout.flush()
         else:
             failed_count += 1
-            
-        # كسر النمط الزمني (Anti-Spam Delay)
-        time.sleep(random.uniform(0.1, 0.4)) 
-        
-        loop += 1
-        sys.stdout.write(f"\r {Z}* {W}({color}TURBO{W}){Z} * {W}LOOP:{loop} {Z}* {G}OK:{deleted_count} {Z}* {Z}CP:{failed_count}{W}")
-        sys.stdout.flush()
     except:
         failed_count += 1
 
 def start_turbo_cleaning():
-    global accounts, deleted_count, failed_count, loop
+    global accounts, deleted_count, failed_count
     if not accounts:
-        print(f" {Z}[!] ADD ACCOUNTS FIRST!"); time.sleep(2); return
+        print(f"{R} [!] Please add accounts first!"); time.sleep(2); return
 
     logo()
-    group_url = input(f" {Z}[{W}?{Z}]{W} ENTER GROUP LINK/ID: {G}").strip()
-    group_id = group_url
-    if 'groups/' in group_url:
-        group_id = group_url.split('groups/')[1].split('/')[0].split('?')[0]
+    print(f"{Y} [!] Tip: Use Numeric Group ID for best results.")
+    group_id = input(f"{W} [?] Group ID or URL: {G}").strip()
+    
+    if 'groups/' in group_id:
+        group_id = group_id.split('groups/')[1].split('/')[0].split('?')[0]
 
-    print(f"\n {Y}[🚀] ACTIVATING TURBO ANTI-BAN SYSTEM...")
-    linex()
+    next_page_url = f"https://graph.facebook.com/v19.0/{group_id}/feed?fields=id,created_time&limit=50&access_token={accounts[0]['token']}"
+
+    print(f"\n{P} [🚀] Starting Infinite Cleaning Mode...")
+    print(f"{P} " + "─"*60)
     
     try:
-        # جلب المنشورات بدفعة كبيرة (100 منشور)
-        next_page_url = f"https://graph.facebook.com/v18.0/{group_id}/feed?limit=100&access_token={accounts[0]['token']}"
-
         while next_page_url:
-            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}, headers={'User-Agent': get_random_ua()}).json()
+            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}).json()
             
+            if 'error' in res:
+                print(f"\n{R} [!] FB Error: {res['error'].get('message')}")
+                break
+
             if 'data' not in res or not res['data']:
-                print(f"\n\n {G}[✓] TARGET CLEANED SUCCESSFULLY.")
+                print(f"\n{G} [✓] All posts have been cleared.")
                 break
 
             tasks = []
-            for i, post in enumerate(res['data']):
+            for i, item in enumerate(res['data']):
+                post_id = item['id']
+                raw_date = item.get('created_time', 'Unknown')
+                clean_date = raw_date.split('T')[0] if 'T' in raw_date else raw_date
+                
                 acc = accounts[i % len(accounts)]
-                tasks.append({'post_id': post['id'], 'acc': acc})
+                tasks.append({'post_id': post_id, 'date': clean_date, 'acc': acc})
 
-            # رفع السرعة بـ 25 خيط (Threads) مع حماية التوزيع
-            with ThreadPoolExecutor(max_workers=25) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 executor.map(delete_process, tasks)
 
             next_page_url = res.get('paging', {}).get('next')
                 
     except KeyboardInterrupt:
-        print(f"\n\n {Y}[!] EMERGENCY STOP.")
+        print(f"\n{Y} [!] Process stopped by user.")
     except Exception as e:
-        print(f"\n\n {Z}[!] ERROR: {e}")
+        print(f"\n{R} [!] Error: {e}")
 
-    linex()
-    print(f" {G}[+] TOTAL SUCCESS: {W}{deleted_count}")
-    input(f"\n {G}[*] PRESS ENTER TO MENU")
+    print(f"\n{G} [✓] Done! {deleted_count} Deleted | {failed_count} Failed.")
+    input(f"{W} Press Enter to back...")
 
 def main():
     while True:
         logo()
-        print(f" {Z}({W}01{Z}){W} > {G}ADD MULTI-ACCOUNTS")
-        print(f" {Z}({W}02{Z}){W} > {G}START TURBO CLEANING")
-        print(f" {Z}({W}00{Z}){W} > {W}EXIT")
-        linex()
-        c = input(f" {Z}* {W}SELECT {Z}: {G}")
-        if c in ['1', '01']: add_accounts()
-        elif c in ['2', '02']: start_turbo_cleaning()
-        elif c in ['0', '00']: break
+        print(f"{W} [1] Add & Verify Accounts")
+        print(f"{W} [2] Start Infinite Turbo Cleaning")
+        print(f"{W} [0] Exit")
+        c = input(f"\n{B} [?] Choice: {G}")
+        if c == '1': add_accounts()
+        elif c == '2': start_turbo_cleaning()
+        elif c == '0': break
 
 if __name__ == "__main__":
     main()
