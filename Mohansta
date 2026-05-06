@@ -1,134 +1,160 @@
-import requests, os, sys, time, re
+# -*- coding: utf-8 -*-
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Tool Name: MOHA-02 TURBO CLEANER (ANTI-BAN EDITION)
+# Developer: Moha Al-Shalfawi (@m_oha_02)
+# Version: 13.0 (Anti-Ban 2026)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import requests, os, sys, time, re, random, string
 from cfonts import render
 from concurrent.futures import ThreadPoolExecutor
 
-# الألوان
-Z = '\033[1;31m' # أحمر
-G = '\033[1;32m' # أخضر
-Y = '\033[1;33m' # أصفر
-W = '\033[1;37m' # أبيض
+# Neon Matrix Colors
+Z = '\033[1;31m' # Red
+G = '\033[1;32m' # Green
+Y = '\033[1;33m' # Yellow
+W = '\033[1;37m' # White
+B = '\033[1;34m' # Blue
+P = '\033[1;35m' # Purple
+C = '\033[1;36m' # Cyan
+COLOR_LIST = [G, Y, B, P, C, W, G, C]
 
 accounts = [] 
 deleted_count = 0
 failed_count = 0
+loop = 0
 
 def clear():
     os.system('clear' if os.name == 'posix' else 'cls')
 
+def linex():
+    print(G + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+def get_random_ua():
+    """توليد بصمات أجهزة عشوائية لتخطي الحظر"""
+    android_vers = random.randint(9, 14)
+    chrome_vers = random.randint(100, 125)
+    build = random.randint(4000, 6000)
+    device = random.choice(["SM-G998B", "CPH2269", "V2027", "RMX3085", "M2101K6G"])
+    return f"Mozilla/5.0 (Linux; Android {android_vers}; {device}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome_vers}.0.{build}.0 Mobile Safari/537.36"
+
 def logo():
     clear()
-    print(G + "==========================================================")
-    print(Y + render('MOHA-02', colors=['yellow', 'green'], align='center'))
-    print(G + "==========================================================")
-    print(f"{W} المطور    : {G}موحا الشلفاوي")
-    print(f"{W} الحالة    : {G}تنظيف لا نهائي (Infinite Mode)")
-    print(f"{W} الترتيب   : {G}من الأحدث إلى الأقدم")
-    print(G + "==========================================================")
+    print(render('MOHA-02', colors=['white', 'green'], align='center'))
+    linex()
+    print(f" {Z}({W}★{Z}){W} DEVELOPER : {G}MOHA AL-SHALFAWI (@m_oha_02)")
+    print(f" {Z}({W}★{Z}){W} SYSTEM    : {G}TURBO ANTI-BAN")
+    print(f" {Z}({W}★{Z}){W} STATUS    : {G}MAX VELOCITY 2026")
+    linex()
 
 def add_accounts():
     global accounts
     logo()
     try:
-        num = int(input(f"{W} [?] كم حساب تريد إضافته: {G}"))
+        num = int(input(f" {Z}[{W}?{Z}]{W} HOW MANY ACCOUNTS: {G}"))
         for i in range(num):
-            print(f"\n{Y} [~] إعداد الحساب رقم {i+1}:")
-            cookie = input(f"{W} [?] أدخل كوكيز الحساب: {G}").strip()
-            
-            head = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Cookie': cookie}
+            print(f"\n {Y}[~] CONFIGURING ACCOUNT #{i+1}:")
+            cookie = input(f" {Z}[{W}?{Z}]{W} ENTER COOKIE: {G}").strip()
+            head = {'User-Agent': get_random_ua(), 'Cookie': cookie}
             res = requests.get('https://business.facebook.com/business_locations', headers=head)
             token_match = re.search('(EAAG\w+)', res.text)
-            
             if token_match:
                 token = token_match.group(1)
                 accounts.append({'token': token, 'cookie': cookie})
-                print(f"{G} [✓] تم إضافة الحساب بنجاح!")
+                print(f" {G}[✓] ACCOUNT LOADED!")
             else:
-                print(f"{Z} [×] كوكيز غير صالح.")
+                print(f" {Z}[×] FAILED TO EXTRACT TOKEN.")
         time.sleep(1)
-    except:
-        print(f"{Z} [!] خطأ في الإدخال.")
+    except: pass
 
 def delete_process(data):
-    global deleted_count, failed_count
+    global deleted_count, failed_count, loop
     post_id = data['post_id']
     acc = data['acc']
+    color = random.choice(COLOR_LIST)
     
     try:
-        url = f"https://graph.facebook.com/v17.0/{post_id}"
-        res = requests.delete(url, params={'access_token': acc['token']}, 
-                             cookies={'cookie': acc['cookie']}, timeout=10).json()
+        # نظام الحذف الموزع مع بصمة جهاز متغيرة
+        url = f"https://graph.facebook.com/v18.0/{post_id}"
+        headers = {'User-Agent': get_random_ua()}
+        res = requests.delete(
+            url, 
+            params={'access_token': acc['token']}, 
+            cookies={'cookie': acc['cookie']}, 
+            headers=headers,
+            timeout=10
+        ).json()
         
-        if res.get('success'):
+        if res.get('success') or res == True:
             deleted_count += 1
         else:
             failed_count += 1
             
-        sys.stdout.write(f"\r {W}[+] المحذوف: {G}{deleted_count} {W}| {Z}فشل: {failed_count} {W}| نشط: {Y}{len(accounts)}")
+        # كسر النمط الزمني (Anti-Spam Delay)
+        time.sleep(random.uniform(0.1, 0.4)) 
+        
+        loop += 1
+        sys.stdout.write(f"\r {Z}* {W}({color}TURBO{W}){Z} * {W}LOOP:{loop} {Z}* {G}OK:{deleted_count} {Z}* {Z}CP:{failed_count}{W}")
         sys.stdout.flush()
     except:
         failed_count += 1
 
 def start_turbo_cleaning():
-    global accounts, deleted_count, failed_count
+    global accounts, deleted_count, failed_count, loop
     if not accounts:
-        print(f"{Z} [!] يرجى إضافة حسابات أولاً!"); time.sleep(2); return
+        print(f" {Z}[!] ADD ACCOUNTS FIRST!"); time.sleep(2); return
 
     logo()
-    group_url = input(f"{W} [?] رابط المجموعة: {G}").strip()
+    group_url = input(f" {Z}[{W}?{Z}]{W} ENTER GROUP LINK/ID: {G}").strip()
     group_id = group_url
     if 'groups/' in group_url:
         group_id = group_url.split('groups/')[1].split('/')[0].split('?')[0]
 
-    # رابط البداية (الأحدث)
-    next_page_url = f"https://graph.facebook.com/v17.0/{group_id}/feed?limit=100&access_token={accounts[0]['token']}"
-
-    print(f"\n{Y} [🚀] بدأت عملية التنظيف الشامل... اضغط Ctrl+C للإيقاف")
+    print(f"\n {Y}[🚀] ACTIVATING TURBO ANTI-BAN SYSTEM...")
+    linex()
     
     try:
+        # جلب المنشورات بدفعة كبيرة (100 منشور)
+        next_page_url = f"https://graph.facebook.com/v18.0/{group_id}/feed?limit=100&access_token={accounts[0]['token']}"
+
         while next_page_url:
-            # 1. جلب المنشورات
-            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}).json()
+            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}, headers={'User-Agent': get_random_ua()}).json()
             
             if 'data' not in res or not res['data']:
-                print(f"\n{G} [✓] انتهت جميع المنشورات أو تم تنظيف المجموعة بالكامل.")
+                print(f"\n\n {G}[✓] TARGET CLEANED SUCCESSFULLY.")
                 break
 
-            current_posts = [p['id'] for p in res['data']]
-            
-            # 2. توزيع المهام على الحسابات (Round Robin)
             tasks = []
-            for i, post_id in enumerate(current_posts):
+            for i, post in enumerate(res['data']):
                 acc = accounts[i % len(accounts)]
-                tasks.append({'post_id': post_id, 'acc': acc})
+                tasks.append({'post_id': post['id'], 'acc': acc})
 
-            # 3. التنفيذ المتوازي (Turbo)
-            with ThreadPoolExecutor(max_workers=15) as executor:
+            # رفع السرعة بـ 25 خيط (Threads) مع حماية التوزيع
+            with ThreadPoolExecutor(max_workers=25) as executor:
                 executor.map(delete_process, tasks)
 
-            # 4. الانتقال للصفحة التالية (الأقدم)
-            if 'paging' in res and 'next' in res['paging']:
-                next_page_url = res['paging']['next']
-            else:
-                next_page_url = None
+            next_page_url = res.get('paging', {}).get('next')
                 
     except KeyboardInterrupt:
-        print(f"\n{Y} [!] تم إيقاف العملية بواسطة المستخدم.")
+        print(f"\n\n {Y}[!] EMERGENCY STOP.")
     except Exception as e:
-        print(f"\n{Z} [!] حدث خطأ: {e}")
+        print(f"\n\n {Z}[!] ERROR: {e}")
 
-    print(f"\n{G} [✓] إجمالي ما تم حذفه: {deleted_count}")
-    input(f"{W} اضغط Enter للعودة...")
+    linex()
+    print(f" {G}[+] TOTAL SUCCESS: {W}{deleted_count}")
+    input(f"\n {G}[*] PRESS ENTER TO MENU")
 
 def main():
     while True:
         logo()
-        print(f"{W} [1] إضافة حسابات (متعدد)")
-        print(f"{W} [2] بدء الحذف اللانهائي (من الأحدث للأقدم)")
-        print(f"{W} [0] خروج")
-        c = input(f"\n{W} [?] الخيار: {G}")
-        if c == '1': add_accounts()
-        elif c == '2': start_turbo_cleaning()
-        elif c == '0': break
+        print(f" {Z}({W}01{Z}){W} > {G}ADD MULTI-ACCOUNTS")
+        print(f" {Z}({W}02{Z}){W} > {G}START TURBO CLEANING")
+        print(f" {Z}({W}00{Z}){W} > {W}EXIT")
+        linex()
+        c = input(f" {Z}* {W}SELECT {Z}: {G}")
+        if c in ['1', '01']: add_accounts()
+        elif c in ['2', '02']: start_turbo_cleaning()
+        elif c in ['0', '00']: break
 
 if __name__ == "__main__":
     main()
