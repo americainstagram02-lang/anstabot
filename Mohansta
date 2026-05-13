@@ -1,26 +1,9 @@
 import requests, os, sys, time, re, random, hashlib, base64
-
-def _0x4f2():
-    os.system('clear')
-    _0x2 = "907297e70438f65809804b4433158c8a1491745e45c47796d852a3262071661d"
-    print("\033[1;35m" + "─"*60)
-    print("\033[1;37m [!] ENTER ACCESS KEY TO START")
-    print("\033[1;35m" + "─"*60)
-    _0x3 = input("\033[1;34m [?] Access Key: \033[1;32m")
-    if hashlib.sha256(_0x3.encode()).hexdigest() != _0x2:
-        print("\n\033[1;31m [×] ACCESS DENIED")
-        sys.exit()
-    print("\n\033[1;32m [✓] SUCCESS")
-    time.sleep(1)
-
-_0x4f2()
-
 try:
     from cfonts import render
 except ImportError:
     os.system('pip install cfonts')
     from cfonts import render
-
 from concurrent.futures import ThreadPoolExecutor
 
 R = '\033[1;31m'
@@ -36,6 +19,21 @@ failed_count = 0
 
 def clear():
     os.system('clear' if os.name == 'posix' else 'cls')
+
+def check_access():
+    clear()
+    _0x2 = "907297e70438f65809804b4433158c8a1491745e45c47796d852a3262071661d"
+    print(P + "┌" + "─"*58 + "┐")
+    print(render(' LOGIN ', colors=['magenta', 'white'], align='center', font='block'))
+    print(P + "└" + "─"*58 + "┘")
+    print(f"\033[1;37m [!] ENTER ACCESS KEY TO START")
+    print(P + "─"*60)
+    _0x3 = input(f"{B} [?] Access Key: {G}")
+    if hashlib.sha256(_0x3.encode()).hexdigest() != _0x2:
+        print(f"\n{R} [×] ACCESS DENIED")
+        sys.exit()
+    print(f"\n{G} [✓] SUCCESS")
+    time.sleep(1)
 
 def logo():
     clear()
@@ -61,37 +59,29 @@ def add_accounts():
             token_match = re.search('(EAAG\w+)', res.text)
             if token_match:
                 token = token_match.group(1)
-                verify_url = f"https://graph.facebook.com/v19.0/me?access_token={token}"
-                verify_res = requests.get(verify_url, cookies={'cookie': cookie}).json()
+                verify_res = requests.get(f"https://graph.facebook.com/v19.0/me?access_token={token}", cookies={'cookie': cookie}).json()
                 if 'id' in verify_res:
                     name = verify_res.get('name', 'Unknown')
                     accounts.append({'token': token, 'cookie': cookie})
-                    print(f"{G} [✓] Success! Account Linked: {W}{name}")
-                else:
-                    print(f"{R} [×] Token found but Cookies expired.")
+                    print(f"{G} [✓] Linked: {W}{name}")
             else:
                 print(f"{R} [×] Failed to extract token.")
         time.sleep(2)
     except Exception as e:
-        print(f"{R} [!] Input Error: {e}")
+        print(f"{R} [!] Error: {e}")
 
 def delete_process(data):
     global deleted_count, failed_count
-    post_id = data['post_id']
-    post_date = data['date']
-    acc = data['acc']
     try:
         time.sleep(random.uniform(0.3, 0.8))
-        url = f"https://graph.facebook.com/v19.0/{post_id}"
-        res = requests.delete(url, params={'access_token': acc['token']}, cookies={'cookie': acc['cookie']}, timeout=15).json()
+        url = f"https://graph.facebook.com/v19.0/{data['post_id']}"
+        res = requests.delete(url, params={'access_token': data['acc']['token']}, cookies={'cookie': data['acc']['cookie']}).json()
         if res.get('success'):
             deleted_count += 1
-            sys.stdout.write(f"\r {W}[+] Deleted Date: {Y}{post_date} {W}| Total: {G}{deleted_count} {W}")
+            sys.stdout.write(f"\r {W}[+] Deleted Date: {Y}{data['date']} {W}| Total: {G}{deleted_count} {W}")
             sys.stdout.flush()
-        else:
-            failed_count += 1
-    except:
-        failed_count += 1
+        else: failed_count += 1
+    except: failed_count += 1
 
 def start_turbo_cleaning():
     global accounts, deleted_count, failed_count
@@ -101,37 +91,33 @@ def start_turbo_cleaning():
     group_id = input(f"{W} [?] Group ID or URL: {G}").strip()
     if 'groups/' in group_id:
         group_id = group_id.split('groups/')[1].split('/')[0].split('?')[0]
-    next_page_url = f"https://graph.facebook.com/v19.0/{group_id}/feed?fields=id,created_time&limit=50&access_token={accounts[0]['token']}"
+    
+    url = f"https://graph.facebook.com/v19.0/{group_id}/feed?fields=id,created_time&limit=50&access_token={accounts[0]['token']}"
     print(f"\n{P} [🚀] Starting Infinite Cleaning Mode...")
-    print(f"{P} " + "─"*60)
+    print(P + "─"*60)
     try:
-        while next_page_url:
-            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}).json()
-            if 'error' in res or 'data' not in res or not res['data']:
-                break
+        while url:
+            res = requests.get(url, cookies={'cookie': accounts[0]['cookie']}).json()
+            if 'data' not in res or not res['data']: break
             tasks = []
             for i, item in enumerate(res['data']):
-                post_id = item['id']
-                raw_date = item.get('created_time', 'Unknown')
-                clean_date = raw_date.split('T')[0] if 'T' in raw_date else raw_date
-                acc = accounts[i % len(accounts)]
-                tasks.append({'post_id': post_id, 'date': clean_date, 'acc': acc})
+                clean_date = item.get('created_time', '').split('T')[0]
+                tasks.append({'post_id': item['id'], 'date': clean_date, 'acc': accounts[i % len(accounts)]})
             with ThreadPoolExecutor(max_workers=8) as executor:
                 executor.map(delete_process, tasks)
-            next_page_url = res.get('paging', {}).get('next')
+            url = res.get('paging', {}).get('next')
     except KeyboardInterrupt:
-        print(f"\n{Y} [!] Process stopped by user.")
+        print(f"\n{Y} [!] Stopped.")
     except Exception as e:
         print(f"\n{R} [!] Error: {e}")
-    print(f"\n{G} [✓] Done! {deleted_count} Deleted | {failed_count} Failed.")
+    print(f"\n{G} [✓] Done! {deleted_count} Deleted.")
     input(f"{W} Press Enter to back...")
 
 def main():
+    check_access()
     while True:
         logo()
-        print(f"{W} [1] Add & Verify Accounts")
-        print(f"{W} [2] Start Infinite Turbo Cleaning")
-        print(f"{W} [0] Exit")
+        print(f"{W} [1] Add & Verify Accounts\n{W} [2] Start Infinite Turbo Cleaning\n{W} [0] Exit")
         c = input(f"\n{B} [?] Choice: {G}")
         if c == '1': add_accounts()
         elif c == '2': start_turbo_cleaning()
