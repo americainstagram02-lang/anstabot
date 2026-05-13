@@ -1,4 +1,4 @@
-import requests, os, sys, time, re, random
+import requests, os, sys, time, re, random, base64
 from cfonts import render
 from concurrent.futures import ThreadPoolExecutor
 
@@ -16,6 +16,23 @@ failed_count = 0
 
 def clear():
     os.system('clear' if os.name == 'posix' else 'cls')
+
+# دالة التحقق المخفية - الكود مشفر بداخلها
+def _check_access():
+    clear()
+    # الكود "M" مشفر بصيغة Base64 لزيادة الصعوبة في اكتشافه
+    _v = base64.b64decode('TQ==').decode('utf-8') 
+    print(P + "┌" + "─"*58 + "┐")
+    print(render(' ACCESS ', colors=['magenta', 'white'], align='center', font='block'))
+    print(P + "└" + "─"*58 + "┘")
+    
+    _u = input(f"\n{W} [?] Enter Activation Code: {G}")
+    if _u != _v:
+        print(f"\n{R} [×] Wrong Code! Access Denied.")
+        sys.exit()
+    else:
+        print(f"{G} [✓] Access Granted. Welcome back.")
+        time.sleep(1.5)
 
 def logo():
     clear()
@@ -67,9 +84,7 @@ def delete_process(data):
     acc = data['acc']
     
     try:
-        # Anti-Ban delay
         time.sleep(random.uniform(0.3, 0.8))
-        
         url = f"https://graph.facebook.com/v19.0/{post_id}"
         res = requests.delete(url, params={'access_token': acc['token']}, 
                              cookies={'cookie': acc['cookie']}, timeout=15).json()
@@ -135,6 +150,8 @@ def start_turbo_cleaning():
     input(f"{W} Press Enter to back...")
 
 def main():
+    # يتم استدعاء نظام التحقق هنا قبل أي شيء
+    _check_access()
     while True:
         logo()
         print(f"{W} [1] Add & Verify Accounts")
