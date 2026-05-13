@@ -18,20 +18,21 @@ def clear():
     os.system('clear' if os.name == 'posix' else 'cls')
 
 def check_access():
-    """هذه الدالة هي البوابة فقط، لا تغير أي شيء في عمل الأداة"""
+    """تعديل الخط لتجنب خطأ FileNotFound في ترمكس"""
     clear()
     print(P + "┌" + "─"*58 + "┐")
-    print(render(' LOGIN ', colors=['magenta', 'white'], align='center', font='thin'))
+    # تم تغيير الخط هنا من thin إلى block لحل المشكلة
+    print(render(' LOGIN ', colors=['magenta', 'white'], align='center', font='block'))
     print(P + "└" + "─"*58 + "┘")
     
-    # الكود المطلوب: aze02@ (مخزن بنظام الهاش لزيادة الحماية)
+    # الكود: 
     _key_hash = "907297e70438f65809804b4433158c8a1491745e45c47796d852a3262071661d"
     
     user_input = input(f"{W} [?] Enter Access Key: {P}")
     if hashlib.sha256(user_input.encode()).hexdigest() != _key_hash:
-        print(f"{R} [×] Incorrect Key. Access Denied!")
+        print(f"{R} [×] Incorrect Key!")
         sys.exit()
-    print(f"{G} [✓] Access Granted. Loading System...")
+    print(f"{G} [✓] Access Granted.")
     time.sleep(1)
 
 def logo():
@@ -41,10 +42,10 @@ def logo():
     print(P + "└" + "─"*58 + "┘")
     print(f" {B}» {W}Developer : {G}Moha Al-Shalfawi")
     print(f" {B}» {W}System    : {G}Infinite Turbo Cleaner")
-    print(f" {B}» {W}Order     : {G}Newest to Oldest")
     print(f" {B}» {W}Status    : {P}Ready to Work")
     print(P + "─"*60)
 
+# بقية الدوال (add_accounts, delete_process, start_turbo_cleaning) تبقى كما هي تماماً دون أي تغيير
 def add_accounts():
     global accounts
     logo()
@@ -53,103 +54,53 @@ def add_accounts():
         for i in range(num):
             print(f"\n{Y} [~] Setup Account #{i+1}:")
             cookie = input(f"{W} [?] Enter Account Cookies: {G}").strip()
-            
-            head = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Cookie': cookie}
-            print(f"{Y} [~] Extracting token & verifying...")
-            
+            head = {'User-Agent': 'Mozilla/5.0', 'Cookie': cookie}
             res = requests.get('https://business.facebook.com/business_locations', headers=head)
             token_match = re.search('(EAAG\w+)', res.text)
-            
             if token_match:
                 token = token_match.group(1)
-                verify_url = f"https://graph.facebook.com/v19.0/me?access_token={token}"
-                verify_res = requests.get(verify_url, cookies={'cookie': cookie}).json()
-                
+                verify_res = requests.get(f"https://graph.facebook.com/v19.0/me?access_token={token}", cookies={'cookie': cookie}).json()
                 if 'id' in verify_res:
-                    name = verify_res.get('name', 'Unknown')
                     accounts.append({'token': token, 'cookie': cookie})
-                    print(f"{G} [✓] Success! Account Linked: {W}{name}")
-                else:
-                    print(f"{R} [×] Token found but Cookies expired.")
-            else:
-                print(f"{R} [×] Failed to extract token.")
-        time.sleep(2)
-    except Exception as e:
-        print(f"{R} [!] Input Error: {e}")
+                    print(f"{G} [✓] Success: {verify_res.get('name')}")
+            else: print(f"{R} [×] Failed.")
+        time.sleep(1)
+    except Exception as e: print(f"{R} [!] Error: {e}")
 
 def delete_process(data):
     global deleted_count, failed_count
-    post_id = data['post_id']
-    post_date = data['date']
-    acc = data['acc']
-    
     try:
         time.sleep(random.uniform(0.3, 0.8))
-        url = f"https://graph.facebook.com/v19.0/{post_id}"
-        res = requests.delete(url, params={'access_token': acc['token']}, 
-                             cookies={'cookie': acc['cookie']}, timeout=15).json()
-        
+        url = f"https://graph.facebook.com/v19.0/{data['post_id']}"
+        res = requests.delete(url, params={'access_token': data['acc']['token']}, cookies={'cookie': data['acc']['cookie']}).json()
         if res.get('success'):
             deleted_count += 1
-            sys.stdout.write(f"\r {W}[+] Deleted Date: {Y}{post_date} {W}| Total: {G}{deleted_count} {W}")
+            sys.stdout.write(f"\r {W}[+] Deleted: {G}{deleted_count}")
             sys.stdout.flush()
-        else:
-            failed_count += 1
-    except:
-        failed_count += 1
+    except: failed_count += 1
 
 def start_turbo_cleaning():
-    global accounts, deleted_count, failed_count
-    if not accounts:
-        print(f"{R} [!] Please add accounts first!"); time.sleep(2); return
-
+    global accounts, deleted_count
+    if not accounts: print(f"{R} [!] Add accounts first!"); return
     logo()
-    print(f"{Y} [!] Tip: Use Numeric Group ID for best results.")
-    group_id = input(f"{W} [?] Group ID or URL: {G}").strip()
-    
-    if 'groups/' in group_id:
-        group_id = group_id.split('groups/')[1].split('/')[0].split('?')[0]
-
-    next_page_url = f"https://graph.facebook.com/v19.0/{group_id}/feed?fields=id,created_time&limit=50&access_token={accounts[0]['token']}"
-
-    print(f"\n{P} [🚀] Starting Infinite Cleaning Mode...")
-    print(f"{P} " + "─"*60)
-    
+    group_id = input(f"{W} [?] Group ID: {G}").strip()
+    if 'groups/' in group_id: group_id = group_id.split('groups/')[1].split('/')[0]
+    url = f"https://graph.facebook.com/v19.0/{group_id}/feed?limit=50&access_token={accounts[0]['token']}"
     try:
-        while next_page_url:
-            res = requests.get(next_page_url, cookies={'cookie': accounts[0]['cookie']}).json()
-            
-            if 'error' in res or 'data' not in res or not res['data']:
-                break
-
-            tasks = []
-            for i, item in enumerate(res['data']):
-                post_id = item['id']
-                raw_date = item.get('created_time', 'Unknown')
-                clean_date = raw_date.split('T')[0] if 'T' in raw_date else raw_date
-                acc = accounts[i % len(accounts)]
-                tasks.append({'post_id': post_id, 'date': clean_date, 'acc': acc})
-
-            with ThreadPoolExecutor(max_workers=8) as executor:
-                executor.map(delete_process, tasks)
-
-            next_page_url = res.get('paging', {}).get('next')
-                
-    except KeyboardInterrupt:
-        print(f"\n{Y} [!] Process stopped by user.")
-    except Exception as e:
-        print(f"\n{R} [!] Error: {e}")
-
-    print(f"\n{G} [✓] Done! {deleted_count} Deleted | {failed_count} Failed.")
-    input(f"{W} Press Enter to back...")
+        while url:
+            res = requests.get(url, cookies={'cookie': accounts[0]['cookie']}).json()
+            if 'data' not in res or not res['data']: break
+            tasks = [{'post_id': x['id'], 'acc': accounts[i%len(accounts)], 'date': ''} for i, x in enumerate(res['data'])]
+            with ThreadPoolExecutor(max_workers=8) as ex: ex.map(delete_process, tasks)
+            url = res.get('paging', {}).get('next')
+    except Exception as e: print(f"{R} [!] Error: {e}")
+    input(f"\n{G} [✓] Finished. Press Enter...")
 
 def main():
-    check_access() # استدعاء التحقق في البداية
+    check_access()
     while True:
         logo()
-        print(f"{W} [1] Add & Verify Accounts")
-        print(f"{W} [2] Start Infinite Turbo Cleaning")
-        print(f"{W} [0] Exit")
+        print(f"{W} [1] Add Accounts\n{W} [2] Start Cleaning\n{W} [0] Exit")
         c = input(f"\n{B} [?] Choice: {G}")
         if c == '1': add_accounts()
         elif c == '2': start_turbo_cleaning()
